@@ -7,12 +7,13 @@
 #define T4_V13 // Also defined in build_flags (platformio.ini)
 #endif
 #include "T4_V13.h"
+#include "mypwd.h"
 
 // https://github.com/Bodmer/TFT_eSPI
 #include <TFT_eSPI.h>            // Include the graphics library (this includes the sprite functions)
 
 // https://github.com/Bodmer/TFT_eFEX
-//#include <TFT_eFEX.h>             // Include the extension graphics functions library
+#include <TFT_eFEX.h>             // Include the extension graphics functions library
 
 
 #include <SPI.h>
@@ -28,7 +29,7 @@
 
 TFT_eSPI tft = TFT_eSPI();       // Create object "tft"
 
-//TFT_eFEX  fex = TFT_eFEX(&tft);    // Create TFT_eFEX object "fex" with pointer to "tft" object
+TFT_eFEX  fex = TFT_eFEX(&tft);    // Create TFT_eFEX object "fex" with pointer to "tft" object
 
 
 WiFiUDP   ntpUDP;
@@ -221,8 +222,8 @@ String httpGETRequest(const char* serverName)
 
 void WifiConnect()
 {
-  const char* ssid = "MyRouter";
-  const char* password = "MijnNaamIsPeter";
+  const char* ssid = MYROUTER;
+  const char* password = MYPWD;
 
   WiFi.begin(ssid, password);
 
@@ -291,8 +292,8 @@ void setup() {
   btnscanT.attach_ms(30, button_loop);
 
   now = millis();
-  SolarUpdateTime = now - 1;
-  EnergyUpdateTime = now - 1;
+  SolarUpdateTime = now;
+  EnergyUpdateTime = now;
 
   if (WiFi.status() != WL_CONNECTED)
   {
@@ -562,6 +563,24 @@ String GetNetEnergy()
   return EnergyUsage;
 }
 
+/***************************************************************************************
+** Function name:           drawProgressBar
+** Description:             Draw a progress bar - increasing percentage only
+***************************************************************************************/
+void drawProgressBar2(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t percent, uint16_t frameColor, uint16_t barColor) {
+  if (percent == 0) {
+    tft.fillRoundRect(x, y, w, h, 3, TFT_BLACK);
+  }
+  if (percent > 100) {
+    percent = 100;
+  }
+  uint8_t margin = 2;
+  uint16_t barHeight = h - 2 * margin;
+  uint16_t barWidth  = w - 2 * margin;
+  tft.drawRoundRect(x, y, w, h, 3, frameColor);
+  tft.fillRect(x + margin, y + margin, barWidth, barHeight, TFT_BLACK);
+  tft.fillRect(x + margin, y + margin, barWidth * percent / 100.0, barHeight, barColor);
+}
 
 void loop()
 {
@@ -583,9 +602,16 @@ void loop()
   Serial.print((SolarUpdateTime - now) / 1000);
   Serial.println(" sec");
 
-  int len = ((SolarUpdateTime - now) * tft.width() / (17*60*1000));
-  tft.drawLine(0, 200, len, 200, TFT_GREEN);
-  tft.drawLine(len + 1, 200, tft.width(), 200, TFT_BLACK);
+ // int len = ((SolarUpdateTime - now) * tft.width() / (17*60*1000));
+ // tft.drawLine(0, 200, len, 200, TFT_GREEN);
+ // tft.drawLine(len + 1, 200, tft.width(), 200, TFT_BLACK);
+
+//  fex.drawProgressBar(0, 200, tft.width(), 3, ((SolarUpdateTime - now) / (17*60*1000)), TFT_BLACK, TFT_GREEN);
+//  fex.drawProgressBar(0, 200, tft.width() - 1, 10, ((SolarUpdateTime - now) / (17*60*10 )), TFT_RED, TFT_GREEN);
+
+  uint8_t perc = ((SolarUpdateTime - now) / (17*60*10));
+  drawProgressBar2(0, 200, tft.width() - 1, 10, perc, TFT_GREENYELLOW, TFT_GREEN);
+  Serial.println(perc);
 
   if (now > SolarUpdateTime)
   {
